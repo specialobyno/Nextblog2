@@ -1,86 +1,64 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
+import type { GetServerSideProps, GetServerSidePropsContext, GetStaticProps, GetStaticPropsContext, NextPage } from "next"
+import Head from "next/head"
+import Image from "next/image"
+import Link from "next/link"
+import BlogItem from "../components/blogItem/BlogItem"
+import { BlogsType } from "../utils/types/type"
+import { MongoClient } from "mongodb"
 
-const Home: NextPage = () => {
+const HomePage: NextPage = ({blogPosts}: any) => {
+ 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center py-2">
       <Head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="true"
+        />
+
         <title>Create Next App</title>
         <link rel="icon" href="/favicon.ico" />
+        <title>NextJS crash course</title>
+        <meta name="description" content="This is my second NextJS crash course app" />
       </Head>
 
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
+      <h1>Blog Page</h1>
+      {blogPosts.map(({ id, title, image, desc, details, slug }: BlogsType) => (
+        <div key={id} className="flex flex-col">
 
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
-
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          <BlogItem
+            id={id}
+            title={title}
+            image={image}
+            desc={desc}
+            slug={slug}        />
         </div>
-      </main>
-
-      <footer className="flex h-24 w-full items-center justify-center border-t">
-        <a
-          className="flex items-center justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-        </a>
-      </footer>
+        
+      ))}
     </div>
   )
 }
+export const getStaticProps: GetStaticProps = async (context: GetStaticPropsContext) => {
+  const connectLink = `mongodb+srv://benito:VUXzBrbQ3qUx0CGD@cluster0.xwtjmsq.mongodb.net/?retryWrites=true&w=majority`
+  const client = await MongoClient.connect(connectLink)
+  const blogPostsCollection = await client.db().collection("posts")
+  const blogPostsCrude = await blogPostsCollection.find().toArray()
+  const blogPosts = blogPostsCrude.map((blog) => {
+    let newBlog: any = {...blog, id: blog._id.toString()}
+    delete newBlog._id
+    return newBlog
+  })
 
-export default Home
+  await client.close()
+  return {
+    props: {
+      blogPosts: blogPosts.reverse()
+    },
+    revalidate: 5
+  }
+}
+
+
+export default HomePage
